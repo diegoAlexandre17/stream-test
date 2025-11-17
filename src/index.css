@@ -86,3 +86,26 @@ html {
   min-width: 0;
   max-width: 100%;
 }
+
+.custom-avatar {
+  width: 50px !important;
+  height: 50px !important;
+}
+
+/* MUY IMPORTANTE: el <img> interno */
+.custom-avatar img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.custom-avatar div {
+  font-size: 30px !important;  
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

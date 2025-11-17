@@ -10,6 +10,7 @@ import {
   Thread,
   Window,
   ChannelList,
+  Avatar,
 } from "stream-chat-react";
 
 import "stream-chat-react/dist/css/v2/index.css";
@@ -22,17 +23,20 @@ const fakeUsers = [
   {
     id: "user-a",
     name: "Usuario A",
-    token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoidXNlci1hIn0.4zKrc1FQQeiH_pcKU7qyT0Amh9dLEnn2EObvmnaCC_w",
+    token:
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoidXNlci1hIn0.4zKrc1FQQeiH_pcKU7qyT0Amh9dLEnn2EObvmnaCC_w",
   },
   {
     id: "user-b",
     name: "Usuario B",
-    token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoidXNlci1iIn0.pK9nuDR4VobSRi28_8hg6HEtgVlft4hNaNxdvph8mwo",
+    token:
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoidXNlci1iIn0.pK9nuDR4VobSRi28_8hg6HEtgVlft4hNaNxdvph8mwo",
   },
   {
     id: "user-c",
     name: "Usuario C",
-    token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoidXNlci1jIn0.KCaG05FWqYid_GnJiPmUg5sR5mtaNjM2XhophJmJsHA", // 👈 Reemplaza con el token generado para user-c
+    token:
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoidXNlci1jIn0.KCaG05FWqYid_GnJiPmUg5sR5mtaNjM2XhophJmJsHA", // 👈 Reemplaza con el token generado para user-c
   },
 ];
 
@@ -47,7 +51,7 @@ export default function AppWithChatCall() {
     try {
       // ✅ Obtener instancia y desconectar si ya existe una conexión previa
       const chatClient = StreamChat.getInstance(apiKey);
-      
+
       if (chatClient.userID) {
         console.log("🔌 Desconectando usuario anterior...");
         await chatClient.disconnectUser();
@@ -67,7 +71,7 @@ export default function AppWithChatCall() {
 
       // ✅ Crear canales con todos los demás usuarios
       const otherUsers = fakeUsers.filter((u) => u.id !== user.id);
-      
+
       for (const otherUser of otherUsers) {
         const userIds = [user.id, otherUser.id].sort();
         const channelId = `chat-${userIds[0]}-${userIds[1]}`;
@@ -124,31 +128,86 @@ export default function AppWithChatCall() {
   // =========================================================
   // 🔹 UI del Chat con lista lateral
   // =========================================================
-  const filters = { 
-    type: "messaging", 
-    members: { $in: [currentUser.id] } 
+  const filters = {
+    type: "messaging",
+    members: { $in: [currentUser.id] },
   };
-  
+
   const sort = { last_message_at: -1 };
 
+  const CustomChannelPreview = (props) => {
+    const { channel, setActiveChannel, activeChannel } = props;
+
+    console.log("Canal en preview:", channel);
+
+    const { messages } = channel.state;
+    const messagePreview = messages[messages.length - 1]?.text?.slice(0, 30);
+    const isActive = activeChannel?.id === channel.id;
+
+    return (
+      <div
+        onClick={() => setActiveChannel?.(channel)}
+        style={{
+          margin: "12px",
+          display: "flex",
+          gap: "5px",
+          padding: "10px",
+          borderRadius: "8px",
+          backgroundColor: isActive ? "#e0e0e0" : "transparent",
+          cursor: "pointer",
+          transition: "background-color 0.2s",
+          display: "flex",
+          alignItems: "center",
+          gap: "10px",
+        }}
+      >
+        <div>
+          <Avatar className="custom-avatar" name={channel.data?.name} image={channel.data?.image} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: isActive ? "600" : "normal" }}>
+            {channel.data?.name || "Unnamed Channel"}
+          </div>
+          {messagePreview ? (
+            <div style={{ fontSize: "14px" }}>{messagePreview}</div>
+          ) : (
+            <div style={{ fontSize: "14px", color: "#aaa" }}>
+              No messages yet
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <div style={{ height: "100vh", width: "100vw", display: "flex", flexDirection: "column" }}>
+    <div
+      style={{
+        height: "100vh",
+        width: "100vw",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
       {/* Header */}
-      <div style={{ 
-        padding: 15, 
-        background: "#005fff", 
-        color: "white",
-        borderBottom: "1px solid #ddd",
-        flexShrink: 0
-      }}>
+      <div
+        style={{
+          padding: 15,
+          background: "#005fff",
+          color: "white",
+          borderBottom: "1px solid #ddd",
+          flexShrink: 0,
+        }}
+      >
         <strong>Stream Chat - {currentUser.name}</strong>
       </div>
 
       {/* Chat Layout */}
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
         <Chat client={client} theme="str-chat__theme-light">
-          <ChannelList 
-            filters={filters} 
+          <ChannelList
+            Preview={CustomChannelPreview}
+            filters={filters}
             sort={sort}
             options={{ limit: 10 }}
           />
