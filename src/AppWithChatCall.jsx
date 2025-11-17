@@ -1,6 +1,7 @@
 // AppWithChatCall.jsx
 import { useState, useEffect } from "react";
 import { StreamChat } from "stream-chat";
+import { StreamVideoClient } from "@stream-io/video-react-sdk";
 import {
   Chat,
   Channel,
@@ -11,6 +12,7 @@ import {
   Window,
   ChannelList,
   Avatar,
+  useChannelStateContext,
 } from "stream-chat-react";
 
 import "stream-chat-react/dist/css/v2/index.css";
@@ -42,7 +44,9 @@ const fakeUsers = [
 
 export default function AppWithChatCall() {
   const [client, setClient] = useState(null);
+  const [videoClient, setVideoClient] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
+  const [isCallActive, setIsCallActive] = useState(false);
 
   // =========================================================
   // 🔹 Iniciar el cliente de chat con un usuario + token manual
@@ -69,6 +73,21 @@ export default function AppWithChatCall() {
 
       console.log("✅ Usuario conectado al chat:", user.name);
 
+      // ✅ Inicializar y conectar cliente de video
+      const videoClientInstance = new StreamVideoClient({
+        apiKey,
+        user: { id: user.id, name: user.name },
+        tokenProvider: () => Promise.resolve(user.token),
+      });
+      
+      await videoClientInstance.connectUser(
+        { id: user.id, name: user.name },
+        user.token
+      );
+      console.log("✅ Cliente de video conectado");
+
+      setVideoClient(videoClientInstance);
+
       // ✅ Crear canales con todos los demás usuarios
       const otherUsers = fakeUsers.filter((u) => u.id !== user.id);
 
@@ -93,16 +112,21 @@ export default function AppWithChatCall() {
   };
 
   // =========================================================
-  // 🔹 Limpiar cliente al desmontar
+  // 🔹 Limpiar cliente al desmontar el componente
   // =========================================================
   useEffect(() => {
     return () => {
+      // Solo se ejecuta cuando el componente se desmonta completamente
       if (client) {
         client.disconnectUser();
-        console.log("🔌 Usuario desconectado");
+        console.log("🔌 Usuario desconectado del chat");
+      }
+      if (videoClient) {
+        videoClient.disconnectUser();
+        console.log("🔌 Usuario desconectado del video");
       }
     };
-  }, [client]);
+  }, []); // ← Sin dependencias, solo cleanup al desmontar
 
   // =========================================================
   // 🔹 Pantalla inicial: Elegir usuario
@@ -135,10 +159,93 @@ export default function AppWithChatCall() {
 
   const sort = { last_message_at: -1 };
 
+  // =========================================================
+  // 🔹 Componente personalizado para el header con botón de llamada
+  // =========================================================
+  const CustomChannelHeader = () => {
+    const { channel } = useChannelStateContext();
+
+    const handleStartCall = async () => {
+      const otherMember = Object.values(channel.state.members).find(
+        (member) => member.user.id !== currentUser.id
+      );
+
+      if (otherMember) {
+        console.log("📞 Iniciando llamada con:", otherMember.user.name);
+        setIsCallActive(true);
+
+        const callType = "default";
+        const callId = `call-${currentUser.id}-${otherMember.user.id}`;
+        const call = videoClient.call(callType, callId);
+        
+        await call.getOrCreate({
+          data: {
+            members: [
+              { user_id: currentUser.id },
+              { user_id: otherMember.user.id }
+            ],
+          },
+        });
+
+        console.log("✅ Llamada creada:", callId);
+        await call.join();
+        // Aquí puedes integrar la lógica real de llamada
+      }
+    };
+
+    return (
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "15px 20px",
+          borderBottom: "1px solid #ddd",
+          backgroundColor: "#fff",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <Avatar
+            name={channel.data?.name}
+            image={channel.data?.image}
+            size={40}
+          />
+          <div>
+            <div style={{ fontWeight: "600", fontSize: "16px" }}>
+              {channel.data?.name || "Canal"}
+            </div>
+            <div style={{ fontSize: "12px", color: "#666" }}>
+              {Object.keys(channel.state.members).length} miembros
+            </div>
+          </div>
+        </div>
+        <button
+          onClick={handleStartCall}
+          style={{
+            padding: "10px 20px",
+            backgroundColor: "#00d95f",
+            color: "white",
+            border: "none",
+            borderRadius: "6px",
+            cursor: "pointer",
+            fontWeight: "600",
+            fontSize: "14px",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+          }}
+          onMouseOver={(e) => (e.target.style.backgroundColor = "#00b84f")}
+          onMouseOut={(e) => (e.target.style.backgroundColor = "#00d95f")}
+        >
+          <span style={{ fontSize: "18px" }}>📞</span>
+          Llamar
+        </button>
+      </div>
+    );
+  };
+
   const CustomChannelPreview = (props) => {
     const { channel, setActiveChannel, activeChannel } = props;
-
-    console.log("Canal en preview:", channel);
 
     const { messages } = channel.state;
     const messagePreview = messages[messages.length - 1]?.text?.slice(0, 30);
@@ -162,7 +269,11 @@ export default function AppWithChatCall() {
         }}
       >
         <div>
-          <Avatar className="custom-avatar" name={channel.data?.name} image={channel.data?.image} />
+          <Avatar
+            className="custom-avatar"
+            name={channel.data?.name}
+            image={channel.data?.image}
+          />
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ fontWeight: isActive ? "600" : "normal" }}>
@@ -213,7 +324,7 @@ export default function AppWithChatCall() {
           />
           <Channel>
             <Window>
-              <ChannelHeader />
+              <CustomChannelHeader />
               <MessageList />
               <MessageInput />
             </Window>
