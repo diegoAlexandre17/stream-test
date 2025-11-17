@@ -1,7 +1,17 @@
 // AppWithChatCall.jsx
 import { useState, useEffect } from "react";
 import { StreamChat } from "stream-chat";
-import { StreamVideoClient } from "@stream-io/video-react-sdk";
+import { 
+  StreamVideoClient,
+  StreamVideo,
+  StreamCall,
+  StreamTheme,
+  CallControls,
+  SpeakerLayout,
+  CallParticipantsList,
+  CallingState,
+  useCallStateHooks,
+} from "@stream-io/video-react-sdk";
 import {
   Chat,
   Channel,
@@ -16,6 +26,7 @@ import {
 } from "stream-chat-react";
 
 import "stream-chat-react/dist/css/v2/index.css";
+import "@stream-io/video-react-sdk/dist/css/styles.css";
 
 // 👉 TU API KEY
 const apiKey = "n2s9ec2gep9x";
@@ -47,6 +58,7 @@ export default function AppWithChatCall() {
   const [videoClient, setVideoClient] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   const [isCallActive, setIsCallActive] = useState(false);
+  const [activeCall, setActiveCall] = useState(null);
 
   // =========================================================
   // 🔹 Iniciar el cliente de chat con un usuario + token manual
@@ -172,10 +184,10 @@ export default function AppWithChatCall() {
 
       if (otherMember) {
         console.log("📞 Iniciando llamada con:", otherMember.user.name);
-        setIsCallActive(true);
-
+        
         const callType = "default";
-        const callId = `call-${currentUser.id}-${otherMember.user.id}`;
+        const userIds = [currentUser.id, otherMember.user.id].sort();
+        const callId = `call-${userIds[0]}-${userIds[1]}`;
         const call = videoClient.call(callType, callId);
         
         await call.getOrCreate({
@@ -189,7 +201,8 @@ export default function AppWithChatCall() {
 
         console.log("✅ Llamada creada:", callId);
         await call.join();
-        // Aquí puedes integrar la lógica real de llamada
+        setActiveCall(call);
+        setIsCallActive(true);
       }
     };
 
@@ -290,6 +303,65 @@ export default function AppWithChatCall() {
       </div>
     );
   };
+
+  // =========================================================
+  // 🔹 Componente de interfaz de llamada usando componentes por defecto de Stream
+  // =========================================================
+  const CallInterface = () => {
+    const { useCallCallingState } = useCallStateHooks();
+    const callingState = useCallCallingState();
+
+    const handleEndCall = async () => {
+      if (activeCall) {
+        await activeCall.leave();
+        setActiveCall(null);
+        setIsCallActive(false);
+      }
+    };
+
+    if (callingState !== CallingState.JOINED) {
+      return (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: "rgba(0, 0, 0, 0.9)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: "white",
+          zIndex: 1000,
+        }}>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontSize: "24px", marginBottom: "20px" }}>📞</div>
+            <div>Conectando a la llamada...</div>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <StreamTheme>
+        <SpeakerLayout participantsBarPosition='bottom' />
+        <CallControls onLeave={handleEndCall} />
+      </StreamTheme>
+    );
+  };
+
+  // =========================================================
+  // 🔹 Si hay una llamada activa, mostrar interfaz de llamada
+  // =========================================================
+  if (isCallActive && activeCall && videoClient) {
+    return (
+      <StreamVideo client={videoClient}>
+        <StreamCall call={activeCall}>
+          <CallInterface />
+        </StreamCall>
+      </StreamVideo>
+    );
+  }
 
   return (
     <div
