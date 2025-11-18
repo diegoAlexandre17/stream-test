@@ -306,6 +306,7 @@ export default function AppWithChatCall() {
     const { messages } = channel.state;
     const messagePreview = messages[messages.length - 1]?.text?.slice(0, 30);
     const isActive = activeChannel?.id === channel.id;
+    const unreadCount = channel.countUnread();
 
     const handleDeleteChat = async (e) => {
       e.stopPropagation();
@@ -358,7 +359,7 @@ export default function AppWithChatCall() {
           if (deleteBtn) deleteBtn.style.opacity = '0';
         }}
       >
-        <div>
+        <div style={{ position: "relative" }}>
           <Avatar
             className="custom-avatar"
             name={channel.data?.name}
@@ -370,13 +371,35 @@ export default function AppWithChatCall() {
             {channel.data?.name || "Unnamed Channel"}
           </div>
           {messagePreview ? (
-            <div style={{ fontSize: "14px" }}>{messagePreview}</div>
+            <div style={{ fontSize: "14px", color: unreadCount > 0 ? "#000" : "#666" }}>
+              {messagePreview}
+            </div>
           ) : (
             <div style={{ fontSize: "14px", color: "#aaa" }}>
               No messages yet
             </div>
           )}
         </div>
+        {unreadCount > 0 && (
+          <div
+            style={{
+              backgroundColor: "#ff4444",
+              color: "white",
+              borderRadius: "50%",
+              minWidth: "24px",
+              height: "24px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "12px",
+              fontWeight: "600",
+              padding: "0 6px",
+              marginRight: "8px",
+            }}
+          >
+            {unreadCount > 99 ? "99+" : unreadCount}
+          </div>
+        )}
         <button
           className="delete-btn"
           onClick={handleDeleteChat}
