@@ -27,6 +27,7 @@ import {
 
 import "stream-chat-react/dist/css/v2/index.css";
 import "@stream-io/video-react-sdk/dist/css/styles.css";
+import CreateChannelFlow from "./CreateChannelFlow";
 
 // 👉 TU API KEY
 const apiKey = "n2s9ec2gep9x";
@@ -60,6 +61,8 @@ export default function AppWithChatCall() {
   const [isCallActive, setIsCallActive] = useState(false);
   const [activeCall, setActiveCall] = useState(null);
   const [incomingCall, setIncomingCall] = useState(null);
+  const [showCreateChannel, setShowCreateChannel] = useState(false);
+  const [isGroupMode, setIsGroupMode] = useState(false);
 
   // =========================================================
   // 🔹 Escuchar llamadas entrantes
@@ -127,7 +130,8 @@ export default function AppWithChatCall() {
 
       setVideoClient(videoClientInstance);
 
-      // ✅ Crear canales con todos los demás usuarios
+      // ✅ Crear canales con todos los demás usuarios (OPCIONAL)
+      // Puedes comentar esto si prefieres crear canales bajo demanda
       const otherUsers = fakeUsers.filter((u) => u.id !== user.id);
 
       for (const otherUser of otherUsers) {
@@ -448,6 +452,31 @@ export default function AppWithChatCall() {
     }
   };
 
+  // =========================================================
+  // 🔹 Handlers para crear canal
+  // =========================================================
+  const handleChannelCreated = async (channel) => {
+    console.log("✅ Nuevo canal creado:", channel.id);
+    
+    // Enviar un mensaje inicial para que aparezca en la lista
+    await channel.sendMessage({
+      text: `Grupo "${channel.data.name}" creado por ${currentUser.name}`,
+      user_id: currentUser.id,
+    });
+    
+    setShowCreateChannel(false);
+    setIsGroupMode(false);
+    // El canal aparecerá automáticamente en la lista
+  };
+
+  const handleOpenCreateChannel = (groupMode = false) => {
+    setIsGroupMode(groupMode);
+    setShowCreateChannel(true);
+  };
+
+  // Obtener usuarios disponibles (excluyendo el usuario actual)
+  const availableUsers = fakeUsers.filter((u) => u.id !== currentUser?.id);
+
   return (
     <div
       style={{
@@ -530,9 +559,52 @@ export default function AppWithChatCall() {
           color: "white",
           borderBottom: "1px solid #ddd",
           flexShrink: 0,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
         }}
       >
         <strong>Stream Chat - {currentUser.name}</strong>
+        <div style={{ display: "flex", gap: "10px" }}>
+          <button
+            onClick={() => handleOpenCreateChannel(false)}
+            style={{
+              padding: "8px 16px",
+              backgroundColor: "#00d95f",
+              color: "white",
+              border: "none",
+              borderRadius: "6px",
+              cursor: "pointer",
+              fontWeight: "600",
+              fontSize: "14px",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+            }}
+          >
+            <span style={{ fontSize: "16px" }}>💬</span>
+            Nuevo Chat
+          </button>
+          <button
+            onClick={() => handleOpenCreateChannel(true)}
+            style={{
+              padding: "8px 16px",
+              backgroundColor: "#7c4dff",
+              color: "white",
+              border: "none",
+              borderRadius: "6px",
+              cursor: "pointer",
+              fontWeight: "600",
+              fontSize: "14px",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+            }}
+          >
+            <span style={{ fontSize: "16px" }}>👥</span>
+            Nuevo Grupo
+          </button>
+        </div>
       </div>
 
       {/* Chat Layout */}
@@ -542,7 +614,12 @@ export default function AppWithChatCall() {
             Preview={CustomChannelPreview}
             filters={filters}
             sort={sort}
-            options={{ limit: 10 }}
+            options={{ 
+              limit: 10,
+              state: true,
+              watch: true,
+              presence: true,
+            }}
           />
           <Channel>
             <Window>
@@ -554,6 +631,21 @@ export default function AppWithChatCall() {
           </Channel>
         </Chat>
       </div>
+
+      {/* Modal de crear nuevo canal */}
+      {showCreateChannel && (
+        <CreateChannelFlow
+          client={client}
+          currentUser={currentUser}
+          availableUsers={availableUsers}
+          onChannelCreated={handleChannelCreated}
+          onCancel={() => {
+            setShowCreateChannel(false);
+            setIsGroupMode(false);
+          }}
+          isGroupMode={isGroupMode}
+        />
+      )}
     </div>
   );
 }
