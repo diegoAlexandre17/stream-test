@@ -307,6 +307,31 @@ export default function AppWithChatCall() {
     const messagePreview = messages[messages.length - 1]?.text?.slice(0, 30);
     const isActive = activeChannel?.id === channel.id;
 
+    const handleDeleteChat = async (e) => {
+      e.stopPropagation();
+      
+      const confirmDelete = window.confirm(
+        `¿Estás seguro de que quieres ocultar este chat? Volverá a aparecer si recibes nuevos mensajes.`
+      );
+      
+      if (confirmDelete) {
+        try {
+          console.log("🗑️ Ocultando canal:", channel.id);
+          
+          await channel.hide();
+          
+          console.log("✅ Canal ocultado");
+          
+          if (isActive) {
+            setActiveChannel?.(null);
+          }
+        } catch (error) {
+          console.error("❌ Error al ocultar el canal:", error);
+          alert("No se pudo ocultar el chat. Intenta nuevamente.");
+        }
+      }
+    };
+
     return (
       <div
         onClick={() => setActiveChannel?.(channel)}
@@ -322,6 +347,15 @@ export default function AppWithChatCall() {
           display: "flex",
           alignItems: "center",
           gap: "10px",
+          position: "relative",
+        }}
+        onMouseEnter={(e) => {
+          const deleteBtn = e.currentTarget.querySelector('.delete-btn');
+          if (deleteBtn) deleteBtn.style.opacity = '1';
+        }}
+        onMouseLeave={(e) => {
+          const deleteBtn = e.currentTarget.querySelector('.delete-btn');
+          if (deleteBtn) deleteBtn.style.opacity = '0';
         }}
       >
         <div>
@@ -343,6 +377,29 @@ export default function AppWithChatCall() {
             </div>
           )}
         </div>
+        <button
+          className="delete-btn"
+          onClick={handleDeleteChat}
+          style={{
+            opacity: 0,
+            transition: "opacity 0.2s",
+            backgroundColor: "#ff4444",
+            color: "white",
+            border: "none",
+            borderRadius: "50%",
+            width: "28px",
+            height: "28px",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: "16px",
+            flexShrink: 0,
+          }}
+          title="Ocultar chat"
+        >
+          🗑️
+        </button>
       </div>
     );
   };
