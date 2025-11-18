@@ -59,6 +59,33 @@ export default function AppWithChatCall() {
   const [currentUser, setCurrentUser] = useState(null);
   const [isCallActive, setIsCallActive] = useState(false);
   const [activeCall, setActiveCall] = useState(null);
+  const [incomingCall, setIncomingCall] = useState(null);
+
+  // =========================================================
+  // 🔹 Escuchar llamadas entrantes
+  // =========================================================
+  useEffect(() => {
+    if (!videoClient) return;
+
+    console.log("👂 Escuchando llamadas para:", currentUser?.name);
+
+    const handleIncomingCall = (event) => {
+      console.log("📞 Llamada entrante detectada:", event);
+      
+      // Obtenemos la instancia correcta de la llamada desde el cliente
+      const callInstance = videoClient.call(event.call.type, event.call.id);
+      setIncomingCall(callInstance);
+    };
+
+    // ✅ Registrar el listener para llamadas entrantes
+    videoClient.on("call.ring", handleIncomingCall);
+    console.log("✅ Listener registrado para call.ring");
+
+    return () => {
+      console.log("🔇 Desregistrando listener call.ring");
+      videoClient.off("call.ring", handleIncomingCall);
+    };
+  }, [videoClient, currentUser]);
 
   // =========================================================
   // 🔹 Iniciar el cliente de chat con un usuario + token manual
@@ -184,25 +211,37 @@ export default function AppWithChatCall() {
 
       if (otherMember) {
         console.log("📞 Iniciando llamada con:", otherMember.user.name);
+        console.log("👤 Miembros:", currentUser.id, "y", otherMember.user.id);
         
         const callType = "default";
         const userIds = [currentUser.id, otherMember.user.id].sort();
         const callId = `call-${userIds[0]}-${userIds[1]}`;
         const call = videoClient.call(callType, callId);
         
-        await call.getOrCreate({
-          data: {
-            members: [
-              { user_id: currentUser.id },
-              { user_id: otherMember.user.id }
-            ],
-          },
-        });
+        try {
+          // Crear la llamada con ring para notificar al otro usuario
+          await call.getOrCreate({
+            ring: true,
+            data: {
+              members: [
+                { user_id: userIds[0] },
+                { user_id: userIds[1] }
+              ],
+              created_by_id: currentUser.id,
+            },
+          });
 
-        console.log("✅ Llamada creada:", callId);
-        await call.join();
-        setActiveCall(call);
-        setIsCallActive(true);
+          console.log("✅ Llamada creada y notificación enviada:", callId);
+          
+          // 🔥 USER A (quien inicia) entra INMEDIATAMENTE a la sala
+          await call.join();
+          console.log("✅ User A entró a la sala, esperando a User B...");
+          
+          setActiveCall(call);
+          setIsCallActive(true);
+        } catch (error) {
+          console.error("❌ Error al crear/unirse a la llamada:", error);
+        }
       }
     };
 
@@ -308,8 +347,9 @@ export default function AppWithChatCall() {
   // 🔹 Componente de interfaz de llamada usando componentes por defecto de Stream
   // =========================================================
   const CallInterface = () => {
-    const { useCallCallingState } = useCallStateHooks();
+    const { useCallCallingState, useParticipantCount } = useCallStateHooks();
     const callingState = useCallCallingState();
+    const participantCount = useParticipantCount();
 
     const handleEndCall = async () => {
       if (activeCall) {
@@ -318,6 +358,19 @@ export default function AppWithChatCall() {
         setIsCallActive(false);
       }
     };
+
+    // Si la llamada termina (LEFT), regresar al chat
+    useEffect(() => {
+      if (callingState === CallingState.LEFT) {
+        // Pequeño delay para que el usuario vea que la llamada terminó
+        const timeout = setTimeout(() => {
+          setActiveCall(null);
+          setIsCallActive(false);
+        }, 1000);
+        
+        return () => clearTimeout(timeout);
+      }
+    }, [callingState]);
 
     if (callingState !== CallingState.JOINED) {
       return (
@@ -336,7 +389,9 @@ export default function AppWithChatCall() {
         }}>
           <div style={{ textAlign: "center" }}>
             <div style={{ fontSize: "24px", marginBottom: "20px" }}>📞</div>
-            <div>Conectando a la llamada...</div>
+            <div>
+              {callingState === CallingState.LEFT ? "Llamada finalizada..." : "Conectando a la llamada..."}
+            </div>
           </div>
         </div>
       );
@@ -363,6 +418,36 @@ export default function AppWithChatCall() {
     );
   }
 
+  // =========================================================
+  // 🔹 Si hay una llamada entrante, mostrar modal
+  // =========================================================
+  const handleAcceptCall = async () => {
+    if (incomingCall) {
+      console.log("✅ User B aceptando llamada entrante...");
+      
+      try {
+        // 🔥 USER B entra a la sala SOLO cuando acepta
+        await incomingCall.join();
+        console.log("✅ User B entró a la sala donde ya está User A");
+        
+        setActiveCall(incomingCall);
+        setIsCallActive(true);
+        setIncomingCall(null);
+      } catch (error) {
+        console.error("❌ Error al unirse a la llamada:", error);
+        setIncomingCall(null);
+      }
+    }
+  };
+
+  const handleRejectCall = async () => {
+    if (incomingCall) {
+      console.log("❌ Rechazando llamada entrante");
+      await incomingCall.leave();
+      setIncomingCall(null);
+    }
+  };
+
   return (
     <div
       style={{
@@ -372,6 +457,71 @@ export default function AppWithChatCall() {
         flexDirection: "column",
       }}
     >
+      {/* Modal de llamada entrante */}
+      {incomingCall && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: "rgba(0, 0, 0, 0.8)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 9999,
+        }}>
+          <div style={{
+            backgroundColor: "white",
+            borderRadius: "12px",
+            padding: "30px",
+            maxWidth: "400px",
+            textAlign: "center",
+            boxShadow: "0 10px 40px rgba(0, 0, 0, 0.3)",
+          }}>
+            <div style={{ fontSize: "48px", marginBottom: "20px" }}>📞</div>
+            <h2 style={{ margin: "0 0 10px 0", fontSize: "24px" }}>
+              Llamada entrante
+            </h2>
+            <p style={{ color: "#666", marginBottom: "30px" }}>
+              Alguien te está llamando...
+            </p>
+            <div style={{ display: "flex", gap: "15px", justifyContent: "center" }}>
+              <button
+                onClick={handleRejectCall}
+                style={{
+                  padding: "12px 30px",
+                  backgroundColor: "#ff4444",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  fontWeight: "600",
+                  fontSize: "16px",
+                }}
+              >
+                Rechazar
+              </button>
+              <button
+                onClick={handleAcceptCall}
+                style={{
+                  padding: "12px 30px",
+                  backgroundColor: "#00d95f",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  fontWeight: "600",
+                  fontSize: "16px",
+                }}
+              >
+                Aceptar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div
         style={{
