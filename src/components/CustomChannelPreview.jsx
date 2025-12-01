@@ -45,9 +45,7 @@ export default function CustomChannelPreview(props) {
         backgroundColor: isActive ? "#e0e0e0" : "transparent",
         cursor: "pointer",
         transition: "background-color 0.2s",
-        display: "flex",
         alignItems: "center",
-        gap: "10px",
         position: "relative",
       }}
       onMouseEnter={(e) => {

@@ -33,27 +33,27 @@ import CustomChannelPreview from "./components/CustomChannelPreview";
 import CallInterface from "./components/CallInterface";
 
 // 👉 TU API KEY
-const apiKey = "n2s9ec2gep9x";
+const apiKey = "mqnxbqw5kvmm";
 
 // 👉 Tres usuarios con tokens MANUALES generados en Stream
 const fakeUsers = [
   {
-    id: "user-a",
-    name: "Usuario A",
+    id: "user1",
+    name: "Usuario 1",
     token:
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoidXNlci1hIn0.4zKrc1FQQeiH_pcKU7qyT0Amh9dLEnn2EObvmnaCC_w",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoidXNlcjEifQ.EUYOqtv9x_dW6mU8kYR55Bd7KfD6mGrlnEvayFzxcAQ",
   },
   {
-    id: "user-b",
-    name: "Usuario B",
+    id: "user2",
+    name: "Usuario 2",
     token:
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoidXNlci1iIn0.pK9nuDR4VobSRi28_8hg6HEtgVlft4hNaNxdvph8mwo",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoidXNlcjIifQ.g1ThcoW_6CnPbqLtL9NwSGrpjj6WD-4yXpNqdNwOGrs",
   },
   {
-    id: "user-c",
-    name: "Usuario C",
+    id: "user3",
+    name: "Usuario 3",
     token:
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoidXNlci1jIn0.KCaG05FWqYid_GnJiPmUg5sR5mtaNjM2XhophJmJsHA", // 👈 Reemplaza con el token generado para user-c
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoidXNlcjMifQ.0JJPmImR0yNfEb14VrsIdu5GTEmciYGQjTk6Blv6DJI", // 👈 Reemplaza con el token generado para user-c
   },
 ];
 
@@ -133,22 +133,9 @@ export default function AppWithChatCall() {
 
       setVideoClient(videoClientInstance);
 
-      // ✅ Crear canales con todos los demás usuarios (OPCIONAL)
-      // Puedes comentar esto si prefieres crear canales bajo demanda
-      const otherUsers = fakeUsers.filter((u) => u.id !== user.id);
-
-      for (const otherUser of otherUsers) {
-        const userIds = [user.id, otherUser.id].sort();
-        const channelId = `chat-${userIds[0]}-${userIds[1]}`;
-
-        const channel = chatClient.channel("messaging", channelId, {
-          members: [user.id, otherUser.id],
-          name: otherUser.name,
-        });
-
-        await channel.watch();
-        console.log(`✅ Canal creado con ${otherUser.name}`);
-      }
+      // ✅ Los canales se crearán bajo demanda cuando uses CreateChannelFlow
+      // No creamos canales automáticamente para evitar problemas de permisos
+      console.log("✅ Usuario listo. Los canales se crearán cuando inicies una conversación.");
 
       setClient(chatClient);
       setCurrentUser(user);
@@ -408,7 +395,7 @@ export default function AppWithChatCall() {
       </div>
 
       {/* Chat Layout */}
-      <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+      <div style={{ display: "flex", flex: 1, overflow: "hidden", width: '100%' }}>
         <Chat client={client} theme="str-chat__theme-light">
           <ChannelList
             Preview={CustomChannelPreview}
