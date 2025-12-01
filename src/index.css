@@ -131,3 +131,30 @@ body {
 .str-chat__thread {
   width: 45%;
 }
+
+.header {
+  padding: 15px;
+  background: #005fff;
+  color: white;
+  border-bottom: 1px solid #ddd;
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.channel-container{
+   margin: 0.75rem 0.50rem ;
+   display: flex;
+   gap: 2rem;
+   padding: 0.75rem;
+   border-radius: 8px;
+   cursor: pointer;
+   transition: background-color 0.2s;
+   align-items: center;
+   position: relative;
+}
+
+.active-channel{
+  background-color: #e0e0e0;
+}

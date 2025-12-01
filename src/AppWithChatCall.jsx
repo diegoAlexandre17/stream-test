@@ -1,7 +1,7 @@
 // AppWithChatCall.jsx
 import { useState, useEffect } from "react";
 import { StreamChat } from "stream-chat";
-import { 
+import {
   StreamVideoClient,
   StreamVideo,
   StreamCall,
@@ -77,7 +77,7 @@ export default function AppWithChatCall() {
 
     const handleIncomingCall = (event) => {
       console.log("📞 Llamada entrante detectada:", event);
-      
+
       // Obtenemos la instancia correcta de la llamada desde el cliente
       const callInstance = videoClient.call(event.call.type, event.call.id);
       setIncomingCall(callInstance);
@@ -124,7 +124,7 @@ export default function AppWithChatCall() {
         user: { id: user.id, name: user.name },
         tokenProvider: () => Promise.resolve(user.token),
       });
-      
+
       await videoClientInstance.connectUser(
         { id: user.id, name: user.name },
         user.token
@@ -135,7 +135,9 @@ export default function AppWithChatCall() {
 
       // ✅ Los canales se crearán bajo demanda cuando uses CreateChannelFlow
       // No creamos canales automáticamente para evitar problemas de permisos
-      console.log("✅ Usuario listo. Los canales se crearán cuando inicies una conversación.");
+      console.log(
+        "✅ Usuario listo. Los canales se crearán cuando inicies una conversación."
+      );
 
       setClient(chatClient);
       setCurrentUser(user);
@@ -199,7 +201,7 @@ export default function AppWithChatCall() {
     return (
       <StreamVideo client={videoClient}>
         <StreamCall call={activeCall}>
-          <CallInterface 
+          <CallInterface
             activeCall={activeCall}
             setActiveCall={setActiveCall}
             setIsCallActive={setIsCallActive}
@@ -215,12 +217,12 @@ export default function AppWithChatCall() {
   const handleAcceptCall = async () => {
     if (incomingCall) {
       console.log("✅ User B aceptando llamada entrante...");
-      
+
       try {
         // 🔥 USER B entra a la sala SOLO cuando acepta
         await incomingCall.join();
         console.log("✅ User B entró a la sala donde ya está User A");
-        
+
         setActiveCall(incomingCall);
         setIsCallActive(true);
         setIncomingCall(null);
@@ -244,13 +246,13 @@ export default function AppWithChatCall() {
   // =========================================================
   const handleChannelCreated = async (channel) => {
     console.log("✅ Nuevo canal creado:", channel.id);
-    
+
     // Enviar un mensaje inicial para que aparezca en la lista
     await channel.sendMessage({
       text: `Grupo "${channel.data.name}" creado por ${currentUser.name}`,
       user_id: currentUser.id,
     });
-    
+
     setShowCreateChannel(false);
     setIsGroupMode(false);
     // El canal aparecerá automáticamente en la lista
@@ -275,26 +277,30 @@ export default function AppWithChatCall() {
     >
       {/* Modal de llamada entrante */}
       {incomingCall && (
-        <div style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: "rgba(0, 0, 0, 0.8)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          zIndex: 9999,
-        }}>
-          <div style={{
-            backgroundColor: "white",
-            borderRadius: "12px",
-            padding: "30px",
-            maxWidth: "400px",
-            textAlign: "center",
-            boxShadow: "0 10px 40px rgba(0, 0, 0, 0.3)",
-          }}>
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.8)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: "white",
+              borderRadius: "12px",
+              padding: "30px",
+              maxWidth: "400px",
+              textAlign: "center",
+              boxShadow: "0 10px 40px rgba(0, 0, 0, 0.3)",
+            }}
+          >
             <div style={{ fontSize: "48px", marginBottom: "20px" }}>📞</div>
             <h2 style={{ margin: "0 0 10px 0", fontSize: "24px" }}>
               Llamada entrante
@@ -302,7 +308,9 @@ export default function AppWithChatCall() {
             <p style={{ color: "#666", marginBottom: "30px" }}>
               Alguien te está llamando...
             </p>
-            <div style={{ display: "flex", gap: "15px", justifyContent: "center" }}>
+            <div
+              style={{ display: "flex", gap: "15px", justifyContent: "center" }}
+            >
               <button
                 onClick={handleRejectCall}
                 style={{
@@ -339,18 +347,7 @@ export default function AppWithChatCall() {
       )}
 
       {/* Header */}
-      <div
-        style={{
-          padding: 15,
-          background: "#005fff",
-          color: "white",
-          borderBottom: "1px solid #ddd",
-          flexShrink: 0,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
+      <div className="header">
         <strong>Stream Chat - {currentUser.name}</strong>
         <div style={{ display: "flex", gap: "10px" }}>
           <button
@@ -395,13 +392,15 @@ export default function AppWithChatCall() {
       </div>
 
       {/* Chat Layout */}
-      <div style={{ display: "flex", flex: 1, overflow: "hidden", width: '100%' }}>
+      <div
+        style={{ display: "flex", flex: 1, overflow: "hidden", width: "100%" }}
+      >
         <Chat client={client} theme="str-chat__theme-light">
           <ChannelList
             Preview={CustomChannelPreview}
             filters={filters}
             sort={sort}
-            options={{ 
+            options={{
               limit: 10,
               state: true,
               watch: true,
@@ -410,7 +409,7 @@ export default function AppWithChatCall() {
           />
           <Channel>
             <Window>
-              <CustomChannelHeader 
+              <CustomChannelHeader
                 currentUser={currentUser}
                 videoClient={videoClient}
                 setActiveCall={setActiveCall}

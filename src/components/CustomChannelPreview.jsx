@@ -1,28 +1,42 @@
 import { Avatar } from "stream-chat-react";
 
+const formatMessageDate = (date) => {
+  if (!date) return "";
+  
+  const messageDate = new Date(date);
+  const day = String(messageDate.getDate()).padStart(2, '0');
+  const month = String(messageDate.getMonth() + 1).padStart(2, '0');
+  const year = messageDate.getFullYear();
+  const hours = String(messageDate.getHours()).padStart(2, '0');
+  const minutes = String(messageDate.getMinutes()).padStart(2, '0');
+  
+  return `${day}/${month}/${year} ${hours}:${minutes}`;
+};
+
 export default function CustomChannelPreview(props) {
   const { channel, setActiveChannel, activeChannel } = props;
 
   const { messages } = channel.state;
   const messagePreview = messages[messages.length - 1]?.text?.slice(0, 30);
+  const messageHours = formatMessageDate(messages[messages.length - 1]?.created_at);
   const isActive = activeChannel?.id === channel.id;
   const unreadCount = channel.countUnread();
 
   const handleDeleteChat = async (e) => {
     e.stopPropagation();
-    
+
     const confirmDelete = window.confirm(
       `¿Estás seguro de que quieres ocultar este chat? Volverá a aparecer si recibes nuevos mensajes.`
     );
-    
+
     if (confirmDelete) {
       try {
         console.log("🗑️ Ocultando canal:", channel.id);
-        
+
         await channel.hide();
-        
+
         console.log("✅ Canal ocultado");
-        
+
         if (isActive) {
           setActiveChannel?.(null);
         }
@@ -36,25 +50,16 @@ export default function CustomChannelPreview(props) {
   return (
     <div
       onClick={() => setActiveChannel?.(channel)}
-      style={{
-        margin: "12px",
-        display: "flex",
-        gap: "5px",
-        padding: "10px",
-        borderRadius: "8px",
-        backgroundColor: isActive ? "#e0e0e0" : "transparent",
-        cursor: "pointer",
-        transition: "background-color 0.2s",
-        alignItems: "center",
-        position: "relative",
-      }}
+      className={`${
+        isActive ? "active-channel" : "transparent"
+      } channel-container`}
       onMouseEnter={(e) => {
-        const deleteBtn = e.currentTarget.querySelector('.delete-btn');
-        if (deleteBtn) deleteBtn.style.opacity = '1';
+        const deleteBtn = e.currentTarget.querySelector(".delete-btn");
+        if (deleteBtn) deleteBtn.style.opacity = "1";
       }}
       onMouseLeave={(e) => {
-        const deleteBtn = e.currentTarget.querySelector('.delete-btn');
-        if (deleteBtn) deleteBtn.style.opacity = '0';
+        const deleteBtn = e.currentTarget.querySelector(".delete-btn");
+        if (deleteBtn) deleteBtn.style.opacity = "0";
       }}
     >
       <div style={{ position: "relative" }}>
@@ -69,13 +74,21 @@ export default function CustomChannelPreview(props) {
           {channel.data?.name || "Unnamed Channel"}
         </div>
         {messagePreview ? (
-          <div style={{ fontSize: "14px", color: unreadCount > 0 ? "#000" : "#666" }}>
-            {messagePreview}
+          <div
+            style={{
+              fontSize: "14px",
+              color: unreadCount > 0 ? "#000" : "#666",
+            }}
+          >
+            <div className="d-flex justify-content-between">
+              <div>{messagePreview}</div>
+              <div>
+                <small>{messageHours}</small>
+              </div>
+            </div>
           </div>
         ) : (
-          <div style={{ fontSize: "14px", color: "#aaa" }}>
-            No messages yet
-          </div>
+          <div style={{ fontSize: "14px", color: "#aaa" }}>No messages yet</div>
         )}
       </div>
       {unreadCount > 0 && (
@@ -98,7 +111,7 @@ export default function CustomChannelPreview(props) {
           {unreadCount > 99 ? "99+" : unreadCount}
         </div>
       )}
-      <button
+      {/* <button
         className="delete-btn"
         onClick={handleDeleteChat}
         style={{
@@ -120,7 +133,7 @@ export default function CustomChannelPreview(props) {
         title="Ocultar chat"
       >
         🗑️
-      </button>
+      </button> */}
     </div>
   );
 }
