@@ -31,6 +31,8 @@ import CreateChannelFlow from "./CreateChannelFlow";
 import CustomChannelHeader from "./components/CustomChannelHeader";
 import CustomChannelPreview from "./components/CustomChannelPreview";
 import CallInterface from "./components/CallInterface";
+import CustomMessageInput from "./components/CustomMessageInput";
+import CustomMessage from "./components/CustomMessage";
 
 // 👉 TU API KEY
 const apiKey = "mqnxbqw5kvmm";
@@ -415,8 +417,9 @@ export default function AppWithChatCall() {
                 setActiveCall={setActiveCall}
                 setIsCallActive={setIsCallActive}
               />
-              <MessageList />
-              <MessageInput />
+              <MessageList /* Message={CustomMessage} */ />
+               {/* <MessageInput /> */}
+              <CustomMessageInput />
             </Window>
             <Thread />
           </Channel>
